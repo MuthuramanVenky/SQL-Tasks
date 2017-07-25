@@ -449,6 +449,18 @@ mysql> select * from orders where amt>(select avg(amt) from orders where odate="
 
 38. Write a select command using a corelated subquery that selects the names and numbers of all
 customers with ratings equal to the maximum for their city.
+mysql> select a.cname,a.rating,a.city from customer a, (select city,max(rating) as maxrating from customer group by city)b where a.rating=b.maxrating and a.city=b.city;
++----------+--------+----------+
+| cname    | rating | city     |
++----------+--------+----------+
+| Hoffman  |    100 | London   |
+| Giovanni |    200 | Rome     |
+| Grass    |    300 | Berlin   |
+| Clemens  |    100 | London   |
+| Cisneros |    300 | San Jose |
++----------+--------+----------+
+5 rows in set (0.00 sec)
+
 39. Write a query that totals the orders for each day and places the results in descending order.
 mysql> select odate,sum(amt) as total from orders group by odate order by total desc;
 +------------+----------+
@@ -659,6 +671,23 @@ mysql> select * from orders where odate="1996-04-10" or odate="1996-03-10";
 
 55. Write a query that produces all pairs of orders by a given customer. Name that customer and
 eliminate duplicates.
+mysql> select a.cname,a.cnum,b.onum from orders b,customer a where a.cnum=b.cnum;
++----------+------+------+
+| cname    | cnum | onum |
++----------+------+------+
+| Hoffman  | 2001 | 3003 |
+| Giovanni | 2002 | 3007 |
+| Giovanni | 2002 | 3009 |
+| Liu      | 2003 | 3005 |
+| Grass    | 2004 | 3010 |
+| Clemens  | 2006 | 3008 |
+| Clemens  | 2006 | 3011 |
+| Pereira  | 2007 | 3002 |
+| Cisneros | 2008 | 3001 |
+| Cisneros | 2008 | 3006 |
++----------+------+------+
+10 rows in set (0.01 sec)
+
 56. Find only those customers whose ratings are higher than every customer in Rome.
 mysql> select * from customer where rating>all(select rating from customer where city="Rome");
 +------+----------+----------+--------+------+
@@ -878,19 +907,15 @@ mysql> select a.sname,a.city,b.cname,b.city from salespeople a,customer b where 
 
 73. Write a query that selects all customers serviced by Peel or Motika. (Hint : The SNUM field
 relates the two tables to one another.)
-mysql> select distinct( a.cname),a.city from customer a, salespeople b where a.snum=b.snum and b.sname ="Peel" or b.sname="Motika";
-+----------+----------+
-| cname    | city     |
-+----------+----------+
-| Hoffman  | London   |
-| Giovanni | Rome     |
-| Liu      | San Jose |
-| Grass    | Berlin   |
-| Clemens  | London   |
-| Pereira  | Rome     |
-| Cisneros | San Jose |
-+----------+----------+
-7 rows in set (0.00 sec)
+um and a.snum= 1001 or a.snum=1004;
++---------+
+| cname   |
++---------+
+| Hoffman |
+| Clemens |
+| Pereira |
++---------+
+3 rows in set (0.00 sec)
 
 74. Count the number of salespeople registering orders for each day. (If a salesperson has more
 than one order on a given day, he or she should be counted only once.)
@@ -944,6 +969,17 @@ mysql> select a.cname,count(b.onum)as orders from customer a, orders b where a.c
 78. Write a query that extracts from the Customers table every customer assigned to a
 salesperson who currently has at least one other customer (besides the customer being
 selected) with orders in the Orders table.
+mysql> select * from customer where snum in (select b.snum from orders a,customer b where a.cnum=b.cnum group by b.snum having count(distinct(a.cnum))>1);
++------+---------+----------+--------+------+
+| cnum | cname   | city     | rating | snum |
++------+---------+----------+--------+------+
+| 2001 | Hoffman | London   |    100 | 1001 |
+| 2003 | Liu     | San Jose |    200 | 1002 |
+| 2004 | Grass   | Berlin   |    300 | 1002 |
+| 2006 | Clemens | London   |    100 | 1001 |
++------+---------+----------+--------+------+
+4 rows in set (0.00 sec)
+
 79. Write a query that selects all customers whose names begin with ‘C’.
 mysql> select cname from customer where cname like "C%";
 +----------+
@@ -1187,7 +1223,35 @@ mysql> select a.sname,sum(a.comm*c.amt) as totals from salespeople a,customer b,
 1 row in set (0.00 sec)
 
 100.Does the customer who has placed the maximum number of orders have the maximum rating?
+mysql> select a.cname ,a.rating,count(b.cnum) as COUNT from customer a, orders b where a.cnum=b.cnum group by a.cnum order by COUNT desc;
++----------+--------+-------+
+| cname    | rating | COUNT |
++----------+--------+-------+
+| Clemens  |    100 |     2 |
+| Giovanni |    200 |     2 |
+| Cisneros |    300 |     2 |
+| Grass    |    300 |     1 |
+| Hoffman  |    100 |     1 |
+| Pereira  |    100 |     1 |
+| Liu      |    200 |     1 |
++----------+--------+-------+
+7 rows in set (0.05 sec)
+
 101.Has the customer who has spent the largest amount of money been given the highest rating?
+mysql> select b.cnum,a.rating,sum(b.amt) from orders b,customer a where a.cnum=b.cnum group by a.cnum;
++------+--------+------------+
+| cnum | rating | sum(b.amt) |
++------+--------+------------+
+| 2001 |    100 |     767.19 |
+| 2002 |    200 |    1788.98 |
+| 2003 |    200 |    5160.45 |
+| 2004 |    300 |    1309.95 |
+| 2006 |    100 |   14614.88 |
+| 2007 |    100 |    1900.10 |
+| 2008 |    300 |    1116.85 |
++------+--------+------------+
+7 rows in set (0.00 sec)
+
 102.List all customers in descending order of customer rating.
 mysql> select * from customer order by rating desc;
 +------+----------+----------+--------+------+
@@ -1305,6 +1369,13 @@ mysql> select a.cname,sum(b.amt) as total from customer a,orders b where a.cnum=
 
 111.Are all customers not having placed orders greater than 200 totally been serviced by
 salespersons Peel or Serres?
+mysql> select b.cname,b.rating from orders a,customer b,salespeople c where a.cnum=b.cnum and b.snum=c.snum and rating>200 and (c.sname="Peel" or c.sname="Serres");
++-------+--------+
+| cname | rating |
++-------+--------+
+| Grass |    300 |
++-------+--------+
+1 row in set (0.00 sec)
 
 112.Which customers have the same rating?
 mysql> select distinct(a.cname),a.rating from customer a,customer b where a.rating=b.rating;
@@ -1409,9 +1480,28 @@ mysql> select a.cname,a.city,b.onum,b.amt from orders b,customer a where a.cnum=
 
 121.Is there any evidence linking the performance of a salesperson to the commission that he or
 she is being paid?
+mysql> select b.snum,sum(a.amt),c.comm from orders a,customer b,salespeople c where a.cnum=b.cnum and b.snum=c.snum group by b.snum;
++------+------------+------+
+| snum | sum(a.amt) | comm |
++------+------------+------+
+| 1001 |   15382.07 | 0.12 |
+| 1002 |    6470.40 | 0.13 |
+| 1003 |    1788.98 | 0.10 |
+| 1004 |    1900.10 | 0.11 |
+| 1007 |    1116.85 | 0.15 |
++------+------------+------+
+5 rows in set (0.00 sec)
+
 
 122.Does the total amount in orders by customer in Rome and London exceed the commission
 paid to salespersons in London and New York by more than 5 times?
+mysql> select sum(a.amt) as sales, (select sum(e.amt*g.comm)*5 from orders e,customer f,salespeople g where e.cnum=f.cnum and f.snum=g.snum and (g.city="London" or g.city="New York")) as  5_times_comm from orders a,customer b where a.cnum=b.cnum and (b.city="London" or b.city="Rome");
++----------+--------------+
+| sales    | 5_times_comm |
++----------+--------------+
+| 19071.15 |   10274.2970 |
++----------+--------------+
+1 row in set (0.00 sec)
 
 123.Which is the date, order number, amt and city for each salesperson (by name) for the
 maximum order he has obtained?
